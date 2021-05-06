@@ -21,7 +21,7 @@ namespace cppflow {
      * @return A string representing dt
      *
      */
-    inline std::string to_string(datatype dt) {
+    inline std::string_view to_string_view(datatype dt) {
         switch (dt) {
             case TF_FLOAT:
                 return "TF_FLOAT";
@@ -73,6 +73,9 @@ namespace cppflow {
                 return "DATATYPE_NOT_KNOWN";
         }
     }
+    inline std::string to_string(datatype dt) {
+        return std::string {to_string_view(dt)};
+    }
 
     /**
      *
@@ -113,7 +116,7 @@ namespace cppflow {
      *
      */
     inline std::ostream& operator<<(std::ostream& os, datatype dt) {
-        os << to_string(dt);
+        os << to_string_view(dt);
         return os;
     }
 
