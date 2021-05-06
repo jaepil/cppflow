@@ -155,7 +155,7 @@ namespace cppflow {
 
     template<typename T>
     tensor::tensor(const T& value) :
-            tensor(deduce_tf_type<T>(), &value, sizeof(T), {1}) {}
+            tensor(deduce_tf_type<T>(), &value, sizeof(T), {}) {}
 
     inline tensor::tensor(const char* value)
         : tensor(std::string_view {value}) {
@@ -175,8 +175,8 @@ namespace cppflow {
         TF_TString_Init(&data);
         TF_TString_Copy(&data, value.data(), value.size());
 
-        int64_t dims = 1;
-        tf_tensor.reset(TF_AllocateTensor(TF_STRING, &dims, 1, sizeof(data)), TF_DeleteTensor);
+        int64_t dims = -1;
+        tf_tensor.reset(TF_AllocateTensor(TF_STRING, &dims, 0, sizeof(data)), TF_DeleteTensor);
         std::memcpy(TF_TensorData(tf_tensor.get()), &data, TF_TensorByteSize(tf_tensor.get()));
         tfe_handle.reset(TFE_NewTensorHandle(tf_tensor.get(), context::get_status()), TFE_DeleteTensorHandle);
         status_check(context::get_status());
