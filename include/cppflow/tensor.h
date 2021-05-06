@@ -9,6 +9,8 @@
 #include <vector>
 #include <cstring>
 #include <string>
+#include <span>
+
 #include <tensorflow/c/tf_tensor.h>
 #include <tensorflow/c/eager/c_api.h>
 
@@ -75,7 +77,7 @@ namespace cppflow {
          * @return A vector representing the flat tensor
          */
         template<typename T>
-        std::vector<T> get_data() const;
+        std::span<T> get_data() const;
 
 
         ~tensor() = default;
@@ -214,7 +216,7 @@ namespace cppflow {
     }
 
     template<typename T>
-    std::vector<T> tensor::get_data() const {
+    std::span<T> tensor::get_data() const {
 
         // Check if asked datatype and tensor datatype match
         if (this->dtype() != deduce_tf_type<T>()) {
@@ -223,7 +225,6 @@ namespace cppflow {
             auto error = "Datatype in function get_data (" + type1 + ") does not match tensor datatype (" + type2 + ")";
             throw std::runtime_error(error);
         }
-
 
         auto res_tensor = get_tensor();
 
@@ -234,10 +235,10 @@ namespace cppflow {
         size_t size = TF_TensorByteSize(res_tensor.get()) / TF_DataTypeSize(TF_TensorType(res_tensor.get()));
 
         // Convert to correct type
-        const auto T_data = static_cast<T*>(raw_data);
-        std::vector<T> r(T_data, T_data + size);
+        const auto* begin = static_cast<const T*>(raw_data);
+        const auto* end = begin + size;
 
-        return r;
+        return std::span {begin, end};
     }
 
     inline datatype tensor::dtype() const {
