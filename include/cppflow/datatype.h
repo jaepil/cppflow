@@ -5,6 +5,8 @@
 #ifndef CPPFLOW2_DATATYPE_H
 #define CPPFLOW2_DATATYPE_H
 
+#include <tensorflow/c/tf_datatype.h>
+
 #include <type_traits>
 #include <string>
 #include <typeinfo>
