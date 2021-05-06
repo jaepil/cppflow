@@ -2223,7 +2223,7 @@ inline tensor audio_summary_v2(const tensor& tag, const tensor& input_tensor, co
     return tensor {__output_tensor};
 }
 
-inline tensor auto_shard_dataset(const tensor& input_dataset, const tensor& num_workers, const tensor& index, const std::vector<datatype>& output_types, const std::vector< std::vector<int64_t>>& output_shapes, int64_t auto_shard_policy=0) {
+inline tensor auto_shard_dataset(const tensor& input_dataset, const tensor& num_workers, const tensor& index, const std::vector<datatype>& output_types, const std::vector< std::vector<int64_t>>& output_shapes, int64_t auto_shard_policy=0, int64_t num_replicas=0) {
     // Define Op
     std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "AutoShardDataset", context::get_status()), &TFE_DeleteOp);
     status_check(context::get_status());
@@ -2253,6 +2253,7 @@ inline tensor auto_shard_dataset(const tensor& input_dataset, const tensor& num_
     status_check(context::get_status());
     
     TFE_OpSetAttrInt(op.get(), "auto_shard_policy", auto_shard_policy);
+    TFE_OpSetAttrInt(op.get(), "num_replicas", num_replicas);
 
     // Execute Op
     constexpr auto __kNumOutputs = 1;
@@ -5634,6 +5635,76 @@ inline tensor c_s_v_dataset(const tensor& filenames, const tensor& compression_t
     return tensor {__output_tensor};
 }
 
+inline tensor c_s_v_dataset_v2(const tensor& filenames, const tensor& compression_type, const tensor& buffer_size, const tensor& header, const tensor& field_delim, const tensor& use_quote_delim, const tensor& na_value, const tensor& select_cols, const std::vector<tensor>& record_defaults, const tensor& exclude_cols, const std::vector<datatype>& output_types, const std::vector< std::vector<int64_t>>& output_shapes) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "CSVDatasetV2", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), filenames.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), compression_type.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), buffer_size.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), header.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), field_delim.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), use_quote_delim.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), na_value.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), select_cols.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    std::vector<TFE_TensorHandle*> record_defaults_handles; record_defaults_handles.reserve(record_defaults.size());
+    std::transform(record_defaults.begin(), record_defaults.end(), std::back_inserter(record_defaults_handles), [](const auto& t) { return t.tfe_handle.get();});
+    TFE_OpAddInputList(op.get(), record_defaults_handles.data(), record_defaults.size(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), exclude_cols.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrTypeList(op.get(), "output_types", reinterpret_cast<const enum TF_DataType *>(output_types.data()), output_types.size());
+    
+    std::vector<const int64_t*> output_shapes_values; output_shapes_values.reserve(output_shapes.size());
+    std::vector<int> output_shapes_ndims; output_shapes_ndims.reserve(output_shapes.size());
+    std::transform(output_shapes.begin(), output_shapes.end(), std::back_inserter(output_shapes_values), [](const auto& v) { return v.data();});
+    std::transform(output_shapes.begin(), output_shapes.end(), std::back_inserter(output_shapes_ndims), [](const auto& v) { return v.size();});
+    TFE_OpSetAttrShapeList(op.get(), "output_shapes", output_shapes_values.data(), output_shapes_ndims.data(), output_shapes.size(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
+}
+
 inline std::vector<tensor> c_t_c_beam_search_decoder(const tensor& inputs, const tensor& sequence_length, int64_t beam_width, int64_t top_paths, bool merge_repeated=true) {
     // Define Op
     std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "CTCBeamSearchDecoder", context::get_status()), &TFE_DeleteOp);
@@ -6201,6 +6272,43 @@ inline tensor collective_gather(const tensor& input, int64_t group_size, int64_t
     return tensor {__output_tensor};
 }
 
+inline tensor collective_gather_v2(const tensor& input, const tensor& group_size, const tensor& group_key, const tensor& instance_key, const std::string& communication_hint="auto", float timeout_seconds=0.0000e+00) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "CollectiveGatherV2", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), input.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), group_size.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), group_key.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), instance_key.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrString(op.get(), "communication_hint", (void*) communication_hint.c_str(), communication_hint.size());
+    TFE_OpSetAttrFloat(op.get(), "timeout_seconds", timeout_seconds);
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
+}
+
 inline tensor collective_permute(const tensor& input, const tensor& source_target_pairs) {
     // Define Op
     std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "CollectivePermute", context::get_status()), &TFE_DeleteOp);
@@ -6248,6 +6356,45 @@ inline tensor collective_reduce(const tensor& input, int64_t group_size, int64_t
     TFE_OpSetAttrString(op.get(), "final_op", (void*) final_op.c_str(), final_op.size());
     TFE_OpSetAttrIntList(op.get(), "subdiv_offsets", subdiv_offsets.data(), subdiv_offsets.size());
     TFE_OpSetAttrIntList(op.get(), "wait_for", wait_for.data(), wait_for.size());
+    TFE_OpSetAttrString(op.get(), "communication_hint", (void*) communication_hint.c_str(), communication_hint.size());
+    TFE_OpSetAttrFloat(op.get(), "timeout_seconds", timeout_seconds);
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
+}
+
+inline tensor collective_reduce_v2(const tensor& input, const tensor& group_size, const tensor& group_key, const tensor& instance_key, const std::string& merge_op, const std::string& final_op, const std::string& communication_hint="auto", float timeout_seconds=0.0000e+00) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "CollectiveReduceV2", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), input.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), group_size.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), group_key.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), instance_key.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrString(op.get(), "merge_op", (void*) merge_op.c_str(), merge_op.size());
+    TFE_OpSetAttrString(op.get(), "final_op", (void*) final_op.c_str(), final_op.size());
     TFE_OpSetAttrString(op.get(), "communication_hint", (void*) communication_hint.c_str(), communication_hint.size());
     TFE_OpSetAttrFloat(op.get(), "timeout_seconds", timeout_seconds);
 
@@ -6452,6 +6599,30 @@ inline std::vector<tensor> compute_accidental_hits(const tensor& true_classes, c
     }
 
     return __outputs;
+}
+
+inline tensor compute_batch_size(const tensor& input_dataset) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "ComputeBatchSize", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), input_dataset.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
 }
 
 inline tensor concat(const tensor& concat_dim, const std::vector<tensor>& values) {
@@ -11392,7 +11563,7 @@ inline tensor experimental_directed_interleave_dataset(const tensor& selector_in
     return tensor {__output_tensor};
 }
 
-inline tensor experimental_ignore_errors_dataset(const tensor& input_dataset, const std::vector<datatype>& output_types, const std::vector< std::vector<int64_t>>& output_shapes) {
+inline tensor experimental_ignore_errors_dataset(const tensor& input_dataset, const std::vector<datatype>& output_types, const std::vector< std::vector<int64_t>>& output_shapes, bool log_warning=false) {
     // Define Op
     std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "ExperimentalIgnoreErrorsDataset", context::get_status()), &TFE_DeleteOp);
     status_check(context::get_status());
@@ -11413,6 +11584,7 @@ inline tensor experimental_ignore_errors_dataset(const tensor& input_dataset, co
     TFE_OpSetAttrShapeList(op.get(), "output_shapes", output_shapes_values.data(), output_shapes_ndims.data(), output_shapes.size(), context::get_status());
     status_check(context::get_status());
     
+    TFE_OpSetAttrBool(op.get(), "log_warning", (unsigned char)log_warning);
 
     // Execute Op
     constexpr auto __kNumOutputs = 1;
@@ -14583,7 +14755,7 @@ inline tensor igammac(const tensor& a, const tensor& x) {
     return tensor {__output_tensor};
 }
 
-inline tensor ignore_errors_dataset(const tensor& input_dataset, const std::vector<datatype>& output_types, const std::vector< std::vector<int64_t>>& output_shapes) {
+inline tensor ignore_errors_dataset(const tensor& input_dataset, const std::vector<datatype>& output_types, const std::vector< std::vector<int64_t>>& output_shapes, bool log_warning=false) {
     // Define Op
     std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "IgnoreErrorsDataset", context::get_status()), &TFE_DeleteOp);
     status_check(context::get_status());
@@ -14604,6 +14776,7 @@ inline tensor ignore_errors_dataset(const tensor& input_dataset, const std::vect
     TFE_OpSetAttrShapeList(op.get(), "output_shapes", output_shapes_values.data(), output_shapes_ndims.data(), output_shapes.size(), context::get_status());
     status_check(context::get_status());
     
+    TFE_OpSetAttrBool(op.get(), "log_warning", (unsigned char)log_warning);
 
     // Execute Op
     constexpr auto __kNumOutputs = 1;
@@ -14655,6 +14828,44 @@ inline tensor image_projective_transform_v2(const tensor& images, const tensor& 
     
     
     TFE_OpAddInput(op.get(), output_shape.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrType(op.get(), "dtype", dtype);
+    TFE_OpSetAttrString(op.get(), "interpolation", (void*) interpolation.c_str(), interpolation.size());
+    TFE_OpSetAttrString(op.get(), "fill_mode", (void*) fill_mode.c_str(), fill_mode.size());
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
+}
+
+inline tensor image_projective_transform_v3(const tensor& images, const tensor& transforms, const tensor& output_shape, const tensor& fill_value, datatype dtype, const std::string& interpolation, const std::string& fill_mode="CONSTANT") {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "ImageProjectiveTransformV3", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), images.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), transforms.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), output_shape.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), fill_value.tfe_handle.get(), context::get_status());
     status_check(context::get_status());
     
 
@@ -15439,6 +15650,36 @@ inline tensor is_variable_initialized(const tensor& ref, datatype dtype) {
     status_check(context::get_status());
 
     return tensor {__output_tensor};
+}
+
+inline std::vector<tensor> isotonic_regression(const tensor& input, datatype output_dtype=static_cast<datatype>(1)) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "IsotonicRegression", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), input.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrType(op.get(), "output_dtype", output_dtype);
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 2;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensors[__kNumOutputs] = {nullptr,};
+    TFE_Execute(op.get(), __output_tensors, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    auto __outputs = std::vector<tensor> {};
+    __outputs.reserve(__num_outputs);
+    for (auto i = 0; i < __num_outputs; ++i) {
+        __outputs.emplace_back(tensor {__output_tensors[i]});
+    }
+
+    return __outputs;
 }
 
 inline tensor iterator(const std::string& shared_name, const std::string& container, const std::vector<datatype>& output_types, const std::vector< std::vector<int64_t>>& output_shapes) {
@@ -18550,7 +18791,7 @@ inline tensor max_intra_op_parallelism_dataset(const tensor& input_dataset, cons
     return tensor {__output_tensor};
 }
 
-inline tensor max_pool(const tensor& input, const std::vector<int64_t>& ksize, const std::vector<int64_t>& strides, const std::string& padding, const std::string& data_format="NHWC") {
+inline tensor max_pool(const tensor& input, const std::vector<int64_t>& ksize, const std::vector<int64_t>& strides, const std::string& padding, const std::vector<int64_t>& explicit_paddings, const std::string& data_format="NHWC") {
     // Define Op
     std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "MaxPool", context::get_status()), &TFE_DeleteOp);
     status_check(context::get_status());
@@ -18565,6 +18806,7 @@ inline tensor max_pool(const tensor& input, const std::vector<int64_t>& ksize, c
     TFE_OpSetAttrIntList(op.get(), "ksize", ksize.data(), ksize.size());
     TFE_OpSetAttrIntList(op.get(), "strides", strides.data(), strides.size());
     TFE_OpSetAttrString(op.get(), "padding", (void*) padding.c_str(), padding.size());
+    TFE_OpSetAttrIntList(op.get(), "explicit_paddings", explicit_paddings.data(), explicit_paddings.size());
     TFE_OpSetAttrString(op.get(), "data_format", (void*) data_format.c_str(), data_format.size());
 
     // Execute Op
@@ -18675,7 +18917,7 @@ inline tensor max_pool3_d_grad_grad(const tensor& orig_input, const tensor& orig
     return tensor {__output_tensor};
 }
 
-inline tensor max_pool_grad(const tensor& orig_input, const tensor& orig_output, const tensor& grad, const std::vector<int64_t>& ksize, const std::vector<int64_t>& strides, const std::string& padding, const std::string& data_format="NHWC") {
+inline tensor max_pool_grad(const tensor& orig_input, const tensor& orig_output, const tensor& grad, const std::vector<int64_t>& ksize, const std::vector<int64_t>& strides, const std::string& padding, const std::vector<int64_t>& explicit_paddings, const std::string& data_format="NHWC") {
     // Define Op
     std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "MaxPoolGrad", context::get_status()), &TFE_DeleteOp);
     status_check(context::get_status());
@@ -18698,6 +18940,7 @@ inline tensor max_pool_grad(const tensor& orig_input, const tensor& orig_output,
     TFE_OpSetAttrIntList(op.get(), "ksize", ksize.data(), ksize.size());
     TFE_OpSetAttrIntList(op.get(), "strides", strides.data(), strides.size());
     TFE_OpSetAttrString(op.get(), "padding", (void*) padding.c_str(), padding.size());
+    TFE_OpSetAttrIntList(op.get(), "explicit_paddings", explicit_paddings.data(), explicit_paddings.size());
     TFE_OpSetAttrString(op.get(), "data_format", (void*) data_format.c_str(), data_format.size());
 
     // Execute Op
@@ -19281,7 +19524,7 @@ inline tensor mod(const tensor& x, const tensor& y) {
     return tensor {__output_tensor};
 }
 
-inline tensor model_dataset(const tensor& input_dataset, const std::vector<datatype>& output_types, const std::vector< std::vector<int64_t>>& output_shapes, int64_t algorithm=0, int64_t cpu_budget=0) {
+inline tensor model_dataset(const tensor& input_dataset, const std::vector<datatype>& output_types, const std::vector< std::vector<int64_t>>& output_shapes, int64_t algorithm=0, int64_t cpu_budget=0, int64_t ram_budget=0) {
     // Define Op
     std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "ModelDataset", context::get_status()), &TFE_DeleteOp);
     status_check(context::get_status());
@@ -19304,6 +19547,7 @@ inline tensor model_dataset(const tensor& input_dataset, const std::vector<datat
     
     TFE_OpSetAttrInt(op.get(), "algorithm", algorithm);
     TFE_OpSetAttrInt(op.get(), "cpu_budget", cpu_budget);
+    TFE_OpSetAttrInt(op.get(), "ram_budget", ram_budget);
 
     // Execute Op
     constexpr auto __kNumOutputs = 1;
@@ -20450,6 +20694,55 @@ inline tensor optimize_dataset(const tensor& input_dataset, const tensor& optimi
     return tensor {__output_tensor};
 }
 
+inline tensor optimize_dataset_v2(const tensor& input_dataset, const tensor& optimizations_enabled, const tensor& optimizations_disabled, const tensor& optimizations_default, const std::vector<datatype>& output_types, const std::vector< std::vector<int64_t>>& output_shapes, const std::vector< std::string>& optimization_configs) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "OptimizeDatasetV2", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), input_dataset.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), optimizations_enabled.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), optimizations_disabled.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), optimizations_default.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrTypeList(op.get(), "output_types", reinterpret_cast<const enum TF_DataType *>(output_types.data()), output_types.size());
+    
+    std::vector<const int64_t*> output_shapes_values; output_shapes_values.reserve(output_shapes.size());
+    std::vector<int> output_shapes_ndims; output_shapes_ndims.reserve(output_shapes.size());
+    std::transform(output_shapes.begin(), output_shapes.end(), std::back_inserter(output_shapes_values), [](const auto& v) { return v.data();});
+    std::transform(output_shapes.begin(), output_shapes.end(), std::back_inserter(output_shapes_ndims), [](const auto& v) { return v.size();});
+    TFE_OpSetAttrShapeList(op.get(), "output_shapes", output_shapes_values.data(), output_shapes_ndims.data(), output_shapes.size(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    std::vector<std::size_t> optimization_configs_sizes; optimization_configs_sizes.reserve(optimization_configs.size());
+    std::transform(optimization_configs.begin(), optimization_configs.end(), std::back_inserter(optimization_configs_sizes), [](const auto& s) { return s.size();});
+    TFE_OpSetAttrStringList(op.get(), "optimization_configs", reinterpret_cast<const void *const *>(optimization_configs.data()), optimization_configs_sizes.data(), optimization_configs.size());
+    
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
+}
+
 inline tensor optional_from_value(const std::vector<tensor>& components, const std::vector<datatype>& Toutput_types) {
     // Define Op
     std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "OptionalFromValue", context::get_status()), &TFE_DeleteOp);
@@ -20806,6 +21099,66 @@ inline tensor outfeed_dequeue_tuple(const std::vector<datatype>& dtypes, const s
     status_check(context::get_status());
     
     TFE_OpSetAttrInt(op.get(), "device_ordinal", device_ordinal);
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
+}
+
+inline tensor outfeed_dequeue_tuple_v2(const tensor& device_ordinal, const std::vector<datatype>& dtypes, const std::vector< std::vector<int64_t>>& shapes) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "OutfeedDequeueTupleV2", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), device_ordinal.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrTypeList(op.get(), "dtypes", reinterpret_cast<const enum TF_DataType *>(dtypes.data()), dtypes.size());
+    
+    std::vector<const int64_t*> shapes_values; shapes_values.reserve(shapes.size());
+    std::vector<int> shapes_ndims; shapes_ndims.reserve(shapes.size());
+    std::transform(shapes.begin(), shapes.end(), std::back_inserter(shapes_values), [](const auto& v) { return v.data();});
+    std::transform(shapes.begin(), shapes.end(), std::back_inserter(shapes_ndims), [](const auto& v) { return v.size();});
+    TFE_OpSetAttrShapeList(op.get(), "shapes", shapes_values.data(), shapes_ndims.data(), shapes.size(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
+}
+
+inline tensor outfeed_dequeue_v2(const tensor& device_ordinal, datatype dtype, const std::vector<int64_t>& shape) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "OutfeedDequeueV2", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), device_ordinal.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrType(op.get(), "dtype", dtype);
+    
+    TFE_OpSetAttrShape(op.get(), "shape", shape.data(), shape.size(), context::get_status());
+    status_check(context::get_status());
+    
 
     // Execute Op
     constexpr auto __kNumOutputs = 1;
@@ -21999,7 +22352,7 @@ inline tensor pow(const tensor& x, const tensor& y) {
     return tensor {__output_tensor};
 }
 
-inline tensor prefetch_dataset(const tensor& input_dataset, const tensor& buffer_size, const std::vector<datatype>& output_types, const std::vector< std::vector<int64_t>>& output_shapes, int64_t slack_period=0, bool legacy_autotune=true) {
+inline tensor prefetch_dataset(const tensor& input_dataset, const tensor& buffer_size, const std::vector<datatype>& output_types, const std::vector< std::vector<int64_t>>& output_shapes, int64_t slack_period=0, bool legacy_autotune=true, int64_t buffer_size_min=0) {
     // Define Op
     std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "PrefetchDataset", context::get_status()), &TFE_DeleteOp);
     status_check(context::get_status());
@@ -22026,6 +22379,7 @@ inline tensor prefetch_dataset(const tensor& input_dataset, const tensor& buffer
     
     TFE_OpSetAttrInt(op.get(), "slack_period", slack_period);
     TFE_OpSetAttrBool(op.get(), "legacy_autotune", (unsigned char)legacy_autotune);
+    TFE_OpSetAttrInt(op.get(), "buffer_size_min", buffer_size_min);
 
     // Execute Op
     constexpr auto __kNumOutputs = 1;
@@ -22498,6 +22852,85 @@ inline tensor quantize_and_dequantize_v3(const tensor& input, const tensor& inpu
     status_check(context::get_status());
 
     return tensor {__output_tensor};
+}
+
+inline tensor quantize_and_dequantize_v4(const tensor& input, const tensor& input_min, const tensor& input_max, bool signed_input=true, int64_t num_bits=8, bool range_given=false, const std::string& round_mode="HALF_TO_EVEN", bool narrow_range=false, int64_t axis=-1) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "QuantizeAndDequantizeV4", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), input.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), input_min.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), input_max.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrBool(op.get(), "signed_input", (unsigned char)signed_input);
+    TFE_OpSetAttrInt(op.get(), "num_bits", num_bits);
+    TFE_OpSetAttrBool(op.get(), "range_given", (unsigned char)range_given);
+    TFE_OpSetAttrString(op.get(), "round_mode", (void*) round_mode.c_str(), round_mode.size());
+    TFE_OpSetAttrBool(op.get(), "narrow_range", (unsigned char)narrow_range);
+    TFE_OpSetAttrInt(op.get(), "axis", axis);
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
+}
+
+inline std::vector<tensor> quantize_and_dequantize_v4_grad(const tensor& gradients, const tensor& input, const tensor& input_min, const tensor& input_max, int64_t axis=-1) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "QuantizeAndDequantizeV4Grad", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), gradients.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), input.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), input_min.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), input_max.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrInt(op.get(), "axis", axis);
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 3;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensors[__kNumOutputs] = {nullptr,};
+    TFE_Execute(op.get(), __output_tensors, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    auto __outputs = std::vector<tensor> {};
+    __outputs.reserve(__num_outputs);
+    for (auto i = 0; i < __num_outputs; ++i) {
+        __outputs.emplace_back(tensor {__output_tensors[i]});
+    }
+
+    return __outputs;
 }
 
 inline std::vector<tensor> quantize_down_and_shrink_range(const tensor& input, const tensor& input_min, const tensor& input_max, datatype Tinput, datatype out_type) {
@@ -25510,6 +25943,39 @@ inline tensor ragged_tensor_to_variant(const std::vector<tensor>& rt_nested_spli
     return tensor {__output_tensor};
 }
 
+inline tensor ragged_tensor_to_variant_gradient(const tensor& encoded_ragged_grad, const tensor& row_splits, const tensor& dense_values_shape, datatype Tvalues, datatype Tsplits=static_cast<datatype>(9)) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "RaggedTensorToVariantGradient", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), encoded_ragged_grad.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), row_splits.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), dense_values_shape.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrType(op.get(), "Tvalues", Tvalues);
+    TFE_OpSetAttrType(op.get(), "Tsplits", Tsplits);
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
+}
+
 inline tensor random_crop(const tensor& image, const tensor& size, int64_t seed=0, int64_t seed2=0) {
     // Define Op
     std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "RandomCrop", context::get_status()), &TFE_DeleteOp);
@@ -26483,6 +26949,46 @@ inline tensor rebatch_dataset(const tensor& input_dataset, const tensor& num_rep
     status_check(context::get_status());
     
     TFE_OpSetAttrBool(op.get(), "use_fallback", (unsigned char)use_fallback);
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
+}
+
+inline tensor rebatch_dataset_v2(const tensor& input_dataset, const tensor& batch_sizes, const tensor& drop_remainder, const std::vector<datatype>& output_types, const std::vector< std::vector<int64_t>>& output_shapes) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "RebatchDatasetV2", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), input_dataset.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), batch_sizes.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), drop_remainder.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrTypeList(op.get(), "output_types", reinterpret_cast<const enum TF_DataType *>(output_types.data()), output_types.size());
+    
+    std::vector<const int64_t*> output_shapes_values; output_shapes_values.reserve(output_shapes.size());
+    std::vector<int> output_shapes_ndims; output_shapes_ndims.reserve(output_shapes.size());
+    std::transform(output_shapes.begin(), output_shapes.end(), std::back_inserter(output_shapes_values), [](const auto& v) { return v.data();});
+    std::transform(output_shapes.begin(), output_shapes.end(), std::back_inserter(output_shapes_ndims), [](const auto& v) { return v.size();});
+    TFE_OpSetAttrShapeList(op.get(), "output_shapes", output_shapes_values.data(), output_shapes_ndims.data(), output_shapes.size(), context::get_status());
+    status_check(context::get_status());
+    
 
     // Execute Op
     constexpr auto __kNumOutputs = 1;
@@ -30373,6 +30879,38 @@ inline tensor rint(const tensor& x) {
     // Required input arguments
     
     TFE_OpAddInput(op.get(), x.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
+}
+
+inline tensor rng_read_and_skip(const tensor& resource, const tensor& alg, const tensor& delta) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "RngReadAndSkip", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), resource.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), alg.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), delta.tfe_handle.get(), context::get_status());
     status_check(context::get_status());
     
 
@@ -36745,6 +37283,36 @@ inline tensor stateless_random_gamma_v2(const tensor& shape, const tensor& seed,
     return tensor {__output_tensor};
 }
 
+inline std::vector<tensor> stateless_random_get_key_counter_alg(const tensor& seed, datatype Tseed=static_cast<datatype>(9)) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "StatelessRandomGetKeyCounterAlg", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), seed.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrType(op.get(), "Tseed", Tseed);
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 3;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensors[__kNumOutputs] = {nullptr,};
+    TFE_Execute(op.get(), __output_tensors, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    auto __outputs = std::vector<tensor> {};
+    __outputs.reserve(__num_outputs);
+    for (auto i = 0; i < __num_outputs; ++i) {
+        __outputs.emplace_back(tensor {__output_tensors[i]});
+    }
+
+    return __outputs;
+}
+
 inline tensor stateless_random_normal(const tensor& shape, const tensor& seed, datatype dtype=static_cast<datatype>(1), datatype Tseed=static_cast<datatype>(9)) {
     // Define Op
     std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "StatelessRandomNormal", context::get_status()), &TFE_DeleteOp);
@@ -36763,6 +37331,43 @@ inline tensor stateless_random_normal(const tensor& shape, const tensor& seed, d
     // Attributes
     TFE_OpSetAttrType(op.get(), "dtype", dtype);
     TFE_OpSetAttrType(op.get(), "Tseed", Tseed);
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
+}
+
+inline tensor stateless_random_normal_v2(const tensor& shape, const tensor& key, const tensor& counter, const tensor& alg, datatype dtype=static_cast<datatype>(1), datatype Tshape=static_cast<datatype>(3)) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "StatelessRandomNormalV2", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), shape.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), key.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), counter.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), alg.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrType(op.get(), "dtype", dtype);
+    TFE_OpSetAttrType(op.get(), "Tshape", Tshape);
 
     // Execute Op
     constexpr auto __kNumOutputs = 1;
@@ -36866,6 +37471,43 @@ inline tensor stateless_random_uniform_full_int(const tensor& shape, const tenso
     return tensor {__output_tensor};
 }
 
+inline tensor stateless_random_uniform_full_int_v2(const tensor& shape, const tensor& key, const tensor& counter, const tensor& alg, datatype dtype=static_cast<datatype>(23), datatype Tshape=static_cast<datatype>(3)) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "StatelessRandomUniformFullIntV2", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), shape.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), key.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), counter.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), alg.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrType(op.get(), "dtype", dtype);
+    TFE_OpSetAttrType(op.get(), "Tshape", Tshape);
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
+}
+
 inline tensor stateless_random_uniform_int(const tensor& shape, const tensor& seed, const tensor& minval, const tensor& maxval, datatype dtype, datatype Tseed=static_cast<datatype>(9)) {
     // Define Op
     std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "StatelessRandomUniformInt", context::get_status()), &TFE_DeleteOp);
@@ -36903,6 +37545,134 @@ inline tensor stateless_random_uniform_int(const tensor& shape, const tensor& se
     return tensor {__output_tensor};
 }
 
+inline tensor stateless_random_uniform_int_v2(const tensor& shape, const tensor& key, const tensor& counter, const tensor& alg, const tensor& minval, const tensor& maxval, datatype dtype, datatype Tshape=static_cast<datatype>(3)) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "StatelessRandomUniformIntV2", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), shape.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), key.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), counter.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), alg.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), minval.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), maxval.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrType(op.get(), "dtype", dtype);
+    TFE_OpSetAttrType(op.get(), "Tshape", Tshape);
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
+}
+
+inline tensor stateless_random_uniform_v2(const tensor& shape, const tensor& key, const tensor& counter, const tensor& alg, datatype dtype=static_cast<datatype>(1), datatype Tshape=static_cast<datatype>(3)) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "StatelessRandomUniformV2", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), shape.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), key.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), counter.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), alg.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrType(op.get(), "dtype", dtype);
+    TFE_OpSetAttrType(op.get(), "Tshape", Tshape);
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
+}
+
+inline std::vector<tensor> stateless_sample_distorted_bounding_box(const tensor& image_size, const tensor& bounding_boxes, const tensor& min_object_covered, const tensor& seed, datatype Tseed, const std::vector<float>& aspect_ratio_range, const std::vector<float>& area_range, int64_t max_attempts=100, bool use_image_if_no_bounding_boxes=false) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "StatelessSampleDistortedBoundingBox", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), image_size.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), bounding_boxes.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), min_object_covered.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), seed.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrType(op.get(), "Tseed", Tseed);
+    TFE_OpSetAttrFloatList(op.get(), "aspect_ratio_range", aspect_ratio_range.data(), aspect_ratio_range.size());
+    TFE_OpSetAttrFloatList(op.get(), "area_range", area_range.data(), area_range.size());
+    TFE_OpSetAttrInt(op.get(), "max_attempts", max_attempts);
+    TFE_OpSetAttrBool(op.get(), "use_image_if_no_bounding_boxes", (unsigned char)use_image_if_no_bounding_boxes);
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 3;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensors[__kNumOutputs] = {nullptr,};
+    TFE_Execute(op.get(), __output_tensors, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    auto __outputs = std::vector<tensor> {};
+    __outputs.reserve(__num_outputs);
+    for (auto i = 0; i < __num_outputs; ++i) {
+        __outputs.emplace_back(tensor {__output_tensors[i]});
+    }
+
+    return __outputs;
+}
+
 inline tensor stateless_truncated_normal(const tensor& shape, const tensor& seed, datatype dtype=static_cast<datatype>(1), datatype Tseed=static_cast<datatype>(9)) {
     // Define Op
     std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "StatelessTruncatedNormal", context::get_status()), &TFE_DeleteOp);
@@ -36921,6 +37691,43 @@ inline tensor stateless_truncated_normal(const tensor& shape, const tensor& seed
     // Attributes
     TFE_OpSetAttrType(op.get(), "dtype", dtype);
     TFE_OpSetAttrType(op.get(), "Tseed", Tseed);
+
+    // Execute Op
+    constexpr auto __kNumOutputs = 1;
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {__output_tensor};
+}
+
+inline tensor stateless_truncated_normal_v2(const tensor& shape, const tensor& key, const tensor& counter, const tensor& alg, datatype dtype=static_cast<datatype>(1), datatype Tshape=static_cast<datatype>(3)) {
+    // Define Op
+    std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "StatelessTruncatedNormalV2", context::get_status()), &TFE_DeleteOp);
+    status_check(context::get_status());
+
+    // Required input arguments
+    
+    TFE_OpAddInput(op.get(), shape.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), key.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), counter.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+    
+    TFE_OpAddInput(op.get(), alg.tfe_handle.get(), context::get_status());
+    status_check(context::get_status());
+    
+
+    // Attributes
+    TFE_OpSetAttrType(op.get(), "dtype", dtype);
+    TFE_OpSetAttrType(op.get(), "Tshape", Tshape);
 
     // Execute Op
     constexpr auto __kNumOutputs = 1;
@@ -37912,7 +38719,7 @@ inline tensor t_p_u_ordinal_selector() {
     return tensor {__output_tensor};
 }
 
-inline void t_p_u_replicate_metadata(int64_t num_replicas, const std::vector<int64_t>& device_assignment, const std::vector<int64_t>& computation_shape, const std::vector< std::string>& host_compute_core, const std::vector< std::string>& padding_map, int64_t num_cores_per_replica=1, const std::string& topology="", bool use_tpu=true, const std::string& step_marker_location="STEP_MARK_AT_ENTRY", bool allow_soft_placement=false) {
+inline void t_p_u_replicate_metadata(int64_t num_replicas, const std::vector<int64_t>& device_assignment, const std::vector<int64_t>& computation_shape, const std::vector< std::string>& host_compute_core, const std::vector< std::string>& padding_map, int64_t num_cores_per_replica=1, const std::string& topology="", bool use_tpu=true, const std::string& step_marker_location="STEP_MARK_AT_ENTRY", bool allow_soft_placement=false, bool use_spmd_for_xla_partitioning=false) {
     // Define Op
     std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "TPUReplicateMetadata", context::get_status()), &TFE_DeleteOp);
     status_check(context::get_status());
@@ -37939,6 +38746,7 @@ inline void t_p_u_replicate_metadata(int64_t num_replicas, const std::vector<int
     TFE_OpSetAttrBool(op.get(), "use_tpu", (unsigned char)use_tpu);
     TFE_OpSetAttrString(op.get(), "step_marker_location", (void*) step_marker_location.c_str(), step_marker_location.size());
     TFE_OpSetAttrBool(op.get(), "allow_soft_placement", (unsigned char)allow_soft_placement);
+    TFE_OpSetAttrBool(op.get(), "use_spmd_for_xla_partitioning", (unsigned char)use_spmd_for_xla_partitioning);
 
     // Execute Op
     constexpr auto __kNumOutputs = 0;
