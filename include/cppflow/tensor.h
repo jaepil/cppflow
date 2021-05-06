@@ -51,7 +51,12 @@ namespace cppflow {
          * @param value The value to be converted
          */
         template<typename T>
-        tensor(const T& value);
+        explicit tensor(const T& value);
+
+        explicit tensor(const char* value);
+        explicit tensor(const char* value, size_t size);
+        explicit tensor(const std::string& value);
+        explicit tensor(const std::string_view& value);
 
         /**
          * @return Shape of the tensor
