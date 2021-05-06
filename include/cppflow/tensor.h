@@ -43,7 +43,7 @@ namespace cppflow {
         * @param values The values to be converted
         */
         template<typename T>
-        tensor(const std::initializer_list<T>& values);
+        tensor(const std::initializer_list<T>& values, const std::initializer_list<int64_t>& shape);
 
         /**
          * Creates a tensor with the given value
@@ -111,10 +111,9 @@ namespace cppflow {
         //       Do *NOT* modify the returned TF_Tensor!
         //       See comments of `tf_tensor` for more details.
         std::shared_ptr<TF_Tensor> get_tensor() const;
-        
-        // DO NOT directly access this member, call get_eager_handle() instead
-        // TODO: This is kept as public to be compatible with existing code and should be mark as private
-        std::shared_ptr<TFE_TensorHandle> tfe_handle;
+
+    private:
+        tensor(TF_DataType type, const void* data, size_t len, const std::vector<int64_t>& shape);
 
     private:
         // This member serves as a local cache of the data in tfe_handle.
@@ -124,7 +123,10 @@ namespace cppflow {
         // Access it via get_tensor() if not in constructor
         mutable std::shared_ptr<TF_Tensor> tf_tensor;
 
-        tensor(enum TF_DataType type, const void* data, size_t len, const std::vector<int64_t>& shape);
+    public:
+        // DO NOT directly access this member, call get_eager_handle() instead
+        // TODO: This is kept as public to be compatible with existing code and should be mark as private
+        std::shared_ptr<TFE_TensorHandle> tfe_handle;
     };
 }
 
@@ -136,7 +138,7 @@ namespace cppflow {
 
 namespace cppflow {
 
-    inline tensor::tensor(enum TF_DataType type, const void *data, size_t len, const std::vector<int64_t> &shape) {
+    inline tensor::tensor(TF_DataType type, const void *data, size_t len, const std::vector<int64_t> &shape) {
         this->tf_tensor = {TF_AllocateTensor(type, shape.data(), shape.size(), len), TF_DeleteTensor};
         memcpy(TF_TensorData(this->tf_tensor.get()), data, TF_TensorByteSize(this->tf_tensor.get()));
         this->tfe_handle = {TFE_NewTensorHandle(this->tf_tensor.get(), context::get_status()), TFE_DeleteTensorHandle};
@@ -148,36 +150,37 @@ namespace cppflow {
         tensor(deduce_tf_type<T>(), values.data(), values.size() * sizeof(T), shape) {}
 
     template<typename T>
-    tensor::tensor(const std::initializer_list<T>& values) :
-            tensor(std::vector<T>(values), {(int64_t) values.size()}) {}
+    tensor::tensor(const std::initializer_list<T>& values, const std::initializer_list<int64_t>& shape) :
+            tensor(std::vector<T> {values}, std::vector {shape}) {}
 
     template<typename T>
     tensor::tensor(const T& value) :
-            tensor(std::vector<T>({value}), {}) {}
+            tensor(deduce_tf_type<T>(), &value, sizeof(T), {1}) {}
 
-#ifdef TENSORFLOW_C_TF_TSTRING_H_
-    // For future version TensorFlow 2.4
-    template<>
-    inline tensor::tensor(const std::string& value) {
-        TF_TString tstr[1];
-        TF_TString_Init(&tstr[0]);
-        TF_TString_Copy(&tstr[0], value.c_str(), value.size());
-
-        *this = tensor(static_cast<enum TF_DataType>(TF_STRING), (void *) tstr, sizeof(tstr), {});
+    inline tensor::tensor(const char* value)
+        : tensor(std::string_view {value}) {
     }
-#else
-    template<>
-    inline tensor::tensor(const std::string& value) {
-        size_t size = 8 + TF_StringEncodedSize(value.length());
-        char* data = new char[value.size() + 8];
-        for (int i=0; i<8; i++) {data[i]=0;}
-        TF_StringEncode(value.c_str(), value.size(), data + 8, size - 8, context::get_status());
+
+    inline tensor::tensor(const char* value, size_t size)
+        : tensor(std::string_view {value, size}) {
+    }
+
+    inline tensor::tensor(const std::string& value)
+        : tensor(std::string_view {value}) {
+    }
+
+    inline tensor::tensor(const std::string_view& value)
+        : tf_tensor(), tfe_handle() {
+        TF_TString data;
+        TF_TString_Init(&data);
+        TF_TString_Copy(&data, value.data(), value.size());
+
+        int64_t dims = 1;
+        tf_tensor.reset(TF_AllocateTensor(TF_STRING, &dims, 1, sizeof(data)), TF_DeleteTensor);
+        std::memcpy(TF_TensorData(tf_tensor.get()), &data, TF_TensorByteSize(tf_tensor.get()));
+        tfe_handle.reset(TFE_NewTensorHandle(tf_tensor.get(), context::get_status()), TFE_DeleteTensorHandle);
         status_check(context::get_status());
-
-        *this = tensor(static_cast<enum TF_DataType>(TF_STRING), (void *) data, size, {});
-        delete [] data;
     }
-#endif // TENSORFLOW_C_TF_TSTRING_H_
 
     inline tensor::tensor(TFE_TensorHandle* handle) {
             this->tfe_handle = {handle, TFE_DeleteTensorHandle};
