@@ -54,7 +54,7 @@ class Attribute:
         # Get the default value for the attribute
         # Not yet supported for lists
         # Not supported for tensors or shape
-        if self.default and not self.islist and self.type not in ['shape', 'tensor']:   
+        if self.default and not self.islist and self.type not in ['shape', 'tensor']:
             cppdefault = '=' + {
                 'int'    : str(self.attr.default_value.i),
                 'bool'   : str(self.attr.default_value.b).lower(),
@@ -103,7 +103,7 @@ class Attribute:
                 'int'   : 'TFE_OpSetAttrInt(op.get(), "{orig:}", {0});',
                 'float' : 'TFE_OpSetAttrFloat(op.get(), "{orig:}", {0});',
                 'string': 'TFE_OpSetAttrString(op.get(), "{orig:}", (void*) {0}.c_str(), {0}.size());',
-                'type'  : 'TFE_OpSetAttrType(op.get(), "{orig:}", {0});', 
+                'type'  : 'TFE_OpSetAttrType(op.get(), "{orig:}", {0});',
                 'bool'  : 'TFE_OpSetAttrBool(op.get(), "{orig:}", (unsigned char){0});',
                 'tensor': '''
                            TFE_OpSetAttrTensor(op.get(), "{orig:}", {0}.get_tensor().get(), context::get_status());
@@ -111,7 +111,7 @@ class Attribute:
                            ''',
                 'n_attr': 'TFE_OpSetAttrInt(op.get(), "{orig:}", {n_attr:}.size());'
 
-            }[self.type].format(self.name.replace('template', 'template_arg'), orig=self.name, n_attr=self.number_attr)).replace('\n', '\n    ')    
+            }[self.type].format(self.name.replace('template', 'template_arg'), orig=self.name, n_attr=self.number_attr)).replace('\n', '\n    ')
 
 
 
@@ -125,7 +125,7 @@ class Operation:
         self.op = op
 
         # More than one output?
-        if len(self.op.output_arg) != 1: raise Exception("More than one or no output not yet supported")
+        # if len(self.op.output_arg) != 1: raise Exception("More than one or no output not yet supported")
 
         self.inputs = [inp for inp in op.input_arg]
 
@@ -141,25 +141,18 @@ class Operation:
 
         # C++ function body
         template = textwrap.dedent('''
-        {}
         inline {} {}({}{}) {{
-
             // Define Op
             std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(TFE_NewOp(context::get_context(), "{}", context::get_status()), &TFE_DeleteOp);
             status_check(context::get_status());
-            
+
             // Required input arguments
             {}
 
             // Attributes
             {}
 
-            // Execute Op
-            int num_outputs_op = 1;
-            TFE_TensorHandle* res[1] = {{nullptr}};
-            TFE_Execute(op.get(), res, &num_outputs_op, context::get_status());
-            status_check(context::get_status());
-            return tensor(res[0]);
+            {}
         }}
         ''')
 
@@ -176,14 +169,14 @@ class Operation:
             status_check(context::get_status());
         ''').replace('\n', '\n    ')
 
-        # Return type of the function
-        out = 'tensor' if len(self.op.output_arg) else 'void'
-
         # snake_case name of the operation
-        snk = re.sub(r'(?<!^)(?=[A-Z])', '_', self.op.name).lower().replace('const', 'const_tensor')
+        op_name = re.sub(r'(?<!^)(?=[A-Z])', '_', self.op.name).lower()
+        if op_name in {"assert", "if", "switch", "while"}:
+            op_name = f"{op_name}_"
+        snk = op_name.replace('const', 'const_tensor')
 
         # Required input arguments
-        inp = ', '.join(['const std::vector<tensor>&{}'.format(n.name) if len(n.number_attr) or len(n.type_list_attr) else 
+        inp = ', '.join(['const std::vector<tensor>& {}'.format(n.name) if len(n.number_attr) or len(n.type_list_attr) else
                  'const tensor& {}'.format(n.name.replace('tensor', 'input_tensor')) for i, n in enumerate(self.inputs)])
 
         # Declaration of attributes
@@ -200,7 +193,43 @@ class Operation:
         # Code for attributes
         atr_code = '\n    '.join(a.code() for a in self.attr_list if len(a.code()))
 
-        return template.format('', out, snk, inp, atr, opn, inp_code, atr_code)
+        if len(self.op.output_arg) == 0:
+            # Return type of the function
+            return_type = "void"
+            execute_op = f"""// Execute Op
+    constexpr auto __kNumOutputs = {len(self.op.output_arg)};
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());"""
+        elif len(self.op.output_arg) == 1:
+            return_type = "tensor"
+            execute_op = f"""// Execute Op
+    constexpr auto __kNumOutputs = {len(self.op.output_arg)};
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensor = nullptr;
+    TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    return tensor {{__output_tensor}};"""
+        else:
+            return_type = "std::vector<tensor>"
+            execute_op = f"""// Execute Op
+    constexpr auto __kNumOutputs = {len(self.op.output_arg)};
+    auto __num_outputs = __kNumOutputs;
+    TFE_TensorHandle* __output_tensors[__kNumOutputs] = {{nullptr,}};
+    TFE_Execute(op.get(), __output_tensors, &__num_outputs, context::get_status());
+    status_check(context::get_status());
+
+    auto __outputs = std::vector<tensor> {{}};
+    __outputs.reserve(__num_outputs);
+    for (auto i = 0; i < __num_outputs; ++i) {{
+        __outputs.emplace_back(tensor {{__output_tensors[i]}});
+    }}
+
+    return __outputs;"""
+
+        return template.format(return_type, snk, inp, atr, opn, inp_code, atr_code, execute_op)
 
 
 
@@ -225,11 +254,10 @@ ops_file = textwrap.dedent('''
 #include "tensor.h"
 #include "datatype.h"
 
+
 namespace cppflow {{
-
 {}
-
-}} // cppflow
+}}  // cppflow
 
 #endif
 
@@ -254,7 +282,7 @@ for op_name in sorted(dir(tf.raw_ops)):
             # Grab operation definition
             op = [op for op in ops.op if op.name == op_name]
             if len(op) == 0: raise Exception("Operation not found")
-            
+
             op = Operation(op[0])
 
             ops_code += op.code()
