@@ -42,7 +42,7 @@ class Attribute:
             'string': 'const std::string&',
             'type'  : 'datatype', # Refers to cppflow::datatype
             'bool'  : 'bool',
-            'tensor': 'const tensor&'
+            'tensor': 'const Tensor&'
         }[self.type]
 
         # Warp list attributes in a C++ vector
@@ -158,26 +158,27 @@ class Operation:
 
         # Add single input template
         add_inputs = textwrap.dedent('''
-            TFE_OpAddInput(op.get(), {}.tfe_handle.get(), context::get_status());
+            TFE_OpAddInput(op.get(), {}.get_eager_handle().get(), context::get_status());
             status_check(context::get_status());
         ''').replace('\n', '\n    ')
 
         add_inputs_list = textwrap.dedent('''
             std::vector<TFE_TensorHandle*> {0}_handles; {0}_handles.reserve({0}.size());
-            std::transform({0}.begin(), {0}.end(), std::back_inserter({0}_handles), [](const auto& t) {{ return t.tfe_handle.get();}});
+            std::transform({0}.begin(), {0}.end(), std::back_inserter({0}_handles), [](const auto& t) {{ return t.get_eager_handle().get();}});
             TFE_OpAddInputList(op.get(), {0}_handles.data(), {0}.size(), context::get_status());
             status_check(context::get_status());
         ''').replace('\n', '\n    ')
 
         # snake_case name of the operation
-        op_name = re.sub(r'(?<!^)(?=[A-Z])', '_', self.op.name).lower()
+        # op_name = re.sub(r'(?<!^)(?=[A-Z])+', '_', self.op.name).lower()
+        op_name = self.op.name
         if op_name in {"assert", "if", "switch", "while"}:
             op_name = f"{op_name}_"
         snk = op_name.replace('const', 'const_tensor')
 
         # Required input arguments
-        inp = ', '.join(['const std::vector<tensor>& {}'.format(n.name) if len(n.number_attr) or len(n.type_list_attr) else
-                 'const tensor& {}'.format(n.name.replace('tensor', 'input_tensor')) for i, n in enumerate(self.inputs)])
+        inp = ', '.join(['const std::vector<Tensor>& {}'.format(n.name) if len(n.number_attr) or len(n.type_list_attr) else
+                'const Tensor& {}'.format(n.name.replace('tensor', 'input_tensor')) for i, n in enumerate(self.inputs)])
 
         # Declaration of attributes
         atr = ', '.join(a.declaration() for a in self.attr_list if len(a.declaration()))
@@ -188,7 +189,7 @@ class Operation:
 
         # Code for input arguments
         inp_code = '\n    '.join(add_inputs_list.format(n.name) if len(n.number_attr) or len(n.type_list_attr) else
-                     add_inputs.format(n.name.replace('tensor', 'input_tensor')) for n in self.inputs)
+                    add_inputs.format(n.name.replace('tensor', 'input_tensor')) for n in self.inputs)
 
         # Code for attributes
         atr_code = '\n    '.join(a.code() for a in self.attr_list if len(a.code()))
@@ -203,7 +204,7 @@ class Operation:
     TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
     status_check(context::get_status());"""
         elif len(self.op.output_arg) == 1:
-            return_type = "tensor"
+            return_type = "Tensor"
             execute_op = f"""// Execute Op
     constexpr auto __kNumOutputs = {len(self.op.output_arg)};
     auto __num_outputs = __kNumOutputs;
@@ -211,9 +212,9 @@ class Operation:
     TFE_Execute(op.get(), &__output_tensor, &__num_outputs, context::get_status());
     status_check(context::get_status());
 
-    return tensor {{__output_tensor}};"""
+    return Tensor {{__output_tensor}};"""
         else:
-            return_type = "std::vector<tensor>"
+            return_type = "std::vector<Tensor>"
             execute_op = f"""// Execute Op
     constexpr auto __kNumOutputs = {len(self.op.output_arg)};
     auto __num_outputs = __kNumOutputs;
@@ -221,10 +222,10 @@ class Operation:
     TFE_Execute(op.get(), __output_tensors, &__num_outputs, context::get_status());
     status_check(context::get_status());
 
-    auto __outputs = std::vector<tensor> {{}};
+    auto __outputs = std::vector<Tensor> {{}};
     __outputs.reserve(__num_outputs);
     for (auto i = 0; i < __num_outputs; ++i) {{
-        __outputs.emplace_back(tensor {{__output_tensors[i]}});
+        __outputs.emplace_back(Tensor {{__output_tensors[i]}});
     }}
 
     return __outputs;"""
@@ -242,11 +243,6 @@ ops_file = textwrap.dedent('''
 #ifndef CPPFLOW2_RAW_OPS_H
 #define CPPFLOW2_RAW_OPS_H
 
-#include <cstdint>
-#include <vector>
-#include <limits>
-#include <algorithm>
-
 #include <tensorflow/c/eager/c_api.h>
 #include <tensorflow/c/tf_datatype.h>
 #include <tensorflow/c/tf_tensor.h>
@@ -254,10 +250,15 @@ ops_file = textwrap.dedent('''
 #include "tensor.h"
 #include "datatype.h"
 
+#include <cstdint>
+#include <vector>
+#include <limits>
+#include <algorithm>
 
-namespace cppflow {{
+
+namespace cppflow::ops {{
 {}
-}}  // cppflow
+}}  // cppflow::ops
 
 #endif
 
