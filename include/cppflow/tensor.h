@@ -225,7 +225,6 @@ namespace cppflow {
 
     template<typename T>
     std::span<T> tensor::get_data() const {
-
         // Check if asked datatype and tensor datatype match
         if (this->dtype() != deduce_tf_type<T>()) {
             auto type1 = cppflow::to_string(deduce_tf_type<T>());
@@ -243,10 +242,10 @@ namespace cppflow {
         size_t size = TF_TensorByteSize(res_tensor.get()) / TF_DataTypeSize(TF_TensorType(res_tensor.get()));
 
         // Convert to correct type
-        const auto* begin = static_cast<const T*>(raw_data);
-        const auto* end = begin + size;
+        auto* begin = static_cast<T*>(raw_data);
+        auto* end = begin + size;
 
-        return std::span {begin, end};
+        return std::span<T> {begin, end};
     }
 
     inline datatype tensor::dtype() const {
