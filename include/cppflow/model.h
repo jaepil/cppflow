@@ -19,7 +19,9 @@ namespace cppflow {
 
     class model {
     public:
-        explicit model(const std::string& filename);
+        explicit model(const std::string_view& filename) : model(filename, "serve") {}
+        explicit model(const std::string_view& filename, const std::string_view& tag) : model(filename, {tag}) {}
+        explicit model(const std::string_view& filename, const std::initializer_list<std::string_view>& tags);
 
         std::vector<std::string> get_operations() const;
         std::vector<int64_t> get_operation_shape(const std::string& operation) const;
@@ -35,17 +37,16 @@ namespace cppflow {
 
     private:
 
-        std::shared_ptr<TF_Graph> graph;
-        std::shared_ptr<TF_Session> session;
+        std::shared_ptr<TF_Graph> graph_;
+        std::shared_ptr<TF_Session> session_;
     };
 }
 
 
 namespace cppflow {
 
-    inline model::model(const std::string &filename) {
-        this->graph = {TF_NewGraph(), TF_DeleteGraph};
-
+    inline model::model(const std::string_view &filename, const std::initializer_list<std::string_view>& tags)
+        : graph_(TF_NewGraph(), TF_DeleteGraph) {
         // Create the session.
         std::unique_ptr<TF_SessionOptions, decltype(&TF_DeleteSessionOptions)> session_options = {TF_NewSessionOptions(), TF_DeleteSessionOptions};
         std::unique_ptr<TF_Buffer, decltype(&TF_DeleteBuffer)> run_options = {TF_NewBufferFromString("", 0), TF_DeleteBuffer};
@@ -56,11 +57,16 @@ namespace cppflow {
             status_check(context::get_status());
         };
 
-        int tag_len = 1;
-        const char* tag = "serve";
-        this->session = {TF_LoadSessionFromSavedModel(session_options.get(), run_options.get(), filename.c_str(),
-                                &tag, tag_len, this->graph.get(), meta_graph.get(), context::get_status()),
-                         session_deleter};
+        auto tag_names = std::vector<const char*> {};
+        for (const auto& tag : tags) {
+            tag_names.emplace_back(tag.data());
+        }
+        session_.reset(
+            TF_LoadSessionFromSavedModel(
+                session_options.get(), run_options.get(), filename.data(),
+                tag_names.data(), static_cast<int32_t>(tag_names.size()), 
+                graph_.get(), meta_graph.get(), context::get_status()),
+            session_deleter);
 
         status_check(context::get_status());
     }
@@ -71,7 +77,7 @@ namespace cppflow {
         TF_Operation* oper;
 
         // Iterate through the operations of a graph
-        while ((oper = TF_GraphNextOperation(this->graph.get(), &pos)) != nullptr) {
+        while ((oper = TF_GraphNextOperation(graph_.get(), &pos)) != nullptr) {
             result.emplace_back(TF_OperationName(oper));
         }
         return result;
@@ -80,7 +86,7 @@ namespace cppflow {
     inline std::vector<int64_t> model::get_operation_shape(const std::string& operation) const {
         // Get operation by the name
         TF_Output out_op;
-        out_op.oper = TF_GraphOperationByName(this->graph.get(), operation.c_str());
+        out_op.oper = TF_GraphOperationByName(graph_.get(), operation.c_str());
         out_op.index = 0;
 
         std::vector<int64_t> shape;
@@ -95,13 +101,13 @@ namespace cppflow {
         // DIMENSIONS
 
         // Get number of dimensions
-        int n_dims = TF_GraphGetTensorNumDims(this->graph.get(), out_op, context::get_status());
+        int n_dims = TF_GraphGetTensorNumDims(graph_.get(), out_op, context::get_status());
 
         // If is not a scalar
         if (n_dims > 0) {
             // Get dimensions
             auto* dims = new int64_t[n_dims];
-            TF_GraphGetTensorShape(this->graph.get(), out_op, dims, n_dims, context::get_status());
+            TF_GraphGetTensorShape(graph_.get(), out_op, dims, n_dims, context::get_status());
 
             // Check error on Model Status
             status_check(context::get_status());
@@ -128,7 +134,7 @@ namespace cppflow {
 
             // Operations
             const auto[op_name, op_idx] = parse_name(std::get<0>(inputs[i]));
-            inp_ops[i].oper = TF_GraphOperationByName(this->graph.get(), op_name.c_str());
+            inp_ops[i].oper = TF_GraphOperationByName(graph_.get(), op_name.c_str());
             inp_ops[i].index = op_idx;
 
             if (!inp_ops[i].oper)
@@ -143,7 +149,7 @@ namespace cppflow {
         for (int i=0; i<outputs.size(); i++) {
 
             const auto[op_name, op_idx] = parse_name(outputs[i]);
-            out_ops[i].oper = TF_GraphOperationByName(this->graph.get(), op_name.c_str());
+            out_ops[i].oper = TF_GraphOperationByName(graph_.get(), op_name.c_str());
             out_ops[i].index = op_idx;
 
             if (!out_ops[i].oper)
@@ -151,7 +157,7 @@ namespace cppflow {
 
         }
 
-        TF_SessionRun(this->session.get(), NULL,
+        TF_SessionRun(session_.get(), NULL,
                 inp_ops.data(), inp_val.data(), inputs.size(),
                 out_ops.data(), out_val.get(), outputs.size(),
                 NULL, 0,NULL , context::get_status());
