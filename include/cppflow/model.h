@@ -203,8 +203,8 @@ inline std::vector<Tensor> Model::forward(
 }
 
 inline Tensor Model::forward(const Tensor& input) {
-    return forward({{"serving_default_input_1", input}},
-                   {"StatefulPartitionedCall"})[0];
+    return forward({{"serving_default_inputs:0", input}},
+                   {"StatefulPartitionedCall:0"})[0];
 }
 
 }    // namespace cppflow
