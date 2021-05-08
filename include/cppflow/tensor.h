@@ -5,11 +5,11 @@
 #ifndef CPPFLOW2_TENSOR_H
 #define CPPFLOW2_TENSOR_H
 
-#include <tensorflow/c/eager/c_api.h>
-#include <tensorflow/c/tf_tensor.h>
-
 #include "context.h"
 #include "datatype.h"
+
+#include <tensorflow/c/eager/c_api.h>
+#include <tensorflow/c/tf_tensor.h>
 
 #include <cstring>
 #include <memory>
