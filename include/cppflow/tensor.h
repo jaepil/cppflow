@@ -15,6 +15,7 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 
@@ -79,12 +80,72 @@ public:
     datatype dtype() const;
 
     /**
-     * Converts the tensor into a C++ vector
-     * @tparam T The c++ type (must be equivalent to the tensor type)
-     * @return A vector representing the flat tensor
+     * Converts the tensor into a C++ span
+     * @tparam T The C++ type (must be equivalent to the tensor type)
+     * @return A span representing the flat tensor
      */
-    template<typename T>
-    std::span<T> get_data() const;
+    template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, bool> = true>
+    std::span<T> get_data() const {
+        // Check if asked datatype and tensor datatype match
+        if (this->dtype() != deduce_tf_type<T>()) {
+            auto type1 = cppflow::to_string(deduce_tf_type<T>());
+            auto type2 = cppflow::to_string(this->dtype());
+            auto error = "Datatype in function get_data (" + type1
+                         + ") does not match tensor datatype (" + type2 + ")";
+            throw std::runtime_error(error);
+        }
+
+        auto res_tensor = get_tensor();
+
+        // Check tensor data is not empty
+        auto raw_data = TF_TensorData(res_tensor.get());
+        // this->error_check(raw_data != nullptr, "Tensor data is empty");
+
+        size_t size = TF_TensorByteSize(res_tensor.get())
+                      / TF_DataTypeSize(TF_TensorType(res_tensor.get()));
+
+        // Convert to correct type
+        auto* begin = static_cast<T*>(raw_data);
+        auto* end = begin + size;
+
+        return std::span<T> {begin, end};
+    }
+
+    /**
+     * Converts the tensor into a C++ string
+     * @tparam T The C++ string type (must be equivalent to the tensor type)
+     * @return A string representing the flat tensor
+     */
+    template<typename T,
+             std::enable_if_t<std::is_same_v<T, std::string_view>, bool> = true>
+    std::string_view get_data() const {
+        auto handle = tf_tensor_.get();
+        if (TF_TensorType(handle) != TF_STRING) {
+            auto type = cppflow::to_string(this->dtype());
+            auto message
+                = "Datatype in function get_data<std::string_view>() does not "
+                  "match tensor datatype ("
+                  + type + ")";
+            throw std::runtime_error(message);
+        }
+
+        auto* data = static_cast<TF_TString*>(TF_TensorData(handle));
+        auto view = std::string_view {TF_TString_GetDataPointer(data),
+                                      TF_TString_GetSize(data)};
+
+        return view;
+    }
+
+    /**
+     * Converts the tensor into a C++ string
+     * @tparam T The C++ string type (must be equivalent to the tensor type)
+     * @return A string representing the flat tensor
+     */
+    template<typename T,
+             std::enable_if_t<std::is_same_v<T, std::string>, bool> = true>
+    std::string get_data() const {
+        return std::string {get_data<std::string_view>()};
+    }
 
     ~Tensor() = default;
     Tensor(const Tensor& tensor) = default;
@@ -250,33 +311,6 @@ inline std::string_view Tensor::device(bool on_memory) const {
     status_check(context::get_status());
 
     return name;
-}
-
-template<typename T>
-std::span<T> Tensor::get_data() const {
-    // Check if asked datatype and tensor datatype match
-    if (this->dtype() != deduce_tf_type<T>()) {
-        auto type1 = cppflow::to_string(deduce_tf_type<T>());
-        auto type2 = cppflow::to_string(this->dtype());
-        auto error = "Datatype in function get_data (" + type1
-                     + ") does not match tensor datatype (" + type2 + ")";
-        throw std::runtime_error(error);
-    }
-
-    auto res_tensor = get_tensor();
-
-    // Check tensor data is not empty
-    auto raw_data = TF_TensorData(res_tensor.get());
-    // this->error_check(raw_data != nullptr, "Tensor data is empty");
-
-    size_t size = TF_TensorByteSize(res_tensor.get())
-                  / TF_DataTypeSize(TF_TensorType(res_tensor.get()));
-
-    // Convert to correct type
-    auto* begin = static_cast<T*>(raw_data);
-    auto* end = begin + size;
-
-    return std::span<T> {begin, end};
 }
 
 inline datatype Tensor::dtype() const {
