@@ -39,13 +39,27 @@ public:
         const std::string& operation) const;
 
     std::vector<Tensor> forward(
-        const std::vector<std::tuple<std::string_view, Tensor>>& inputs,
-        const std::vector<std::string_view>& outputs);
+        const std::vector<std::tuple<std::string, Tensor>>& inputs,
+        const std::vector<std::string>& outputs);
+    template<typename T,
+             std::enable_if_t<
+                 std::is_nothrow_convertible_v<T, std::string_view>, int> = 0>
+    std::vector<Tensor> forward(
+        const std::vector<std::tuple<T, Tensor>>& inputs,
+        const std::vector<T>& outputs);
     Tensor forward(const Tensor& input);
 
     std::vector<Tensor> operator()(
-        const std::vector<std::tuple<std::string_view, Tensor>>& inputs,
-        const std::vector<std::string_view>& outputs) {
+        const std::vector<std::tuple<std::string, Tensor>>& inputs,
+        const std::vector<std::string>& outputs) {
+        return forward(inputs, outputs);
+    }
+    template<typename T,
+             std::enable_if_t<
+                 std::is_nothrow_convertible_v<T, std::string_view>, int> = 0>
+    std::vector<Tensor> operator()(
+        const std::vector<std::tuple<T, Tensor>>& inputs,
+        const std::vector<T>& outputs) {
         return forward(inputs, outputs);
     }
     Tensor operator()(const Tensor& input) {
@@ -154,8 +168,29 @@ inline std::tuple<std::string, int> parse_name(const std::string_view& name) {
 }
 
 inline std::vector<Tensor> Model::forward(
-    const std::vector<std::tuple<std::string_view, Tensor>>& inputs,
-    const std::vector<std::string_view>& outputs) {
+    const std::vector<std::tuple<std::string, Tensor>>& inputs,
+    const std::vector<std::string>& outputs) {
+    auto inputs_view = std::vector<std::tuple<std::string_view, Tensor>> {};
+    inputs_view.reserve(inputs.size());
+    for (const auto& [input, tensor] : inputs) {
+        inputs_view.emplace_back(std::make_tuple(input, tensor));
+    }
+
+    auto outputs_view = std::vector<std::string_view> {};
+    outputs_view.reserve(outputs.size());
+    for (const auto& output : outputs) {
+        outputs_view.emplace_back(output);
+    }
+
+    return forward(inputs_view, outputs_view);
+}
+
+template<
+    typename T,
+    std::enable_if_t<std::is_nothrow_convertible_v<T, std::string_view>, int>>
+inline std::vector<Tensor> Model::forward(
+    const std::vector<std::tuple<T, Tensor>>& inputs,
+    const std::vector<T>& outputs) {
     auto input_ops = std::vector<TF_Output> {};
     input_ops.reserve(inputs.size());
     auto input_values = std::vector<TF_Tensor*> {};
