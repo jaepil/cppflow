@@ -38,6 +38,8 @@ public:
      */
     template<typename T>
     Tensor(const std::vector<T>& values, const std::vector<int64_t>& shape);
+    template<typename T>
+    Tensor(const std::span<T>& values, const std::vector<int64_t>& shape);
 
     /**
      * Creates a flat tensor with the given values
@@ -224,6 +226,12 @@ inline Tensor::Tensor(TF_DataType type, const void* data, size_t len,
 
 template<typename T>
 Tensor::Tensor(const std::vector<T>& values, const std::vector<int64_t>& shape)
+    : Tensor(deduce_tf_type<T>(), values.data(), values.size() * sizeof(T),
+             shape) {
+}
+
+template<typename T>
+Tensor::Tensor(const std::span<T>& values, const std::vector<int64_t>& shape)
     : Tensor(deduce_tf_type<T>(), values.data(), values.size() * sizeof(T),
              shape) {
 }
