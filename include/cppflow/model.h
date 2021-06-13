@@ -127,17 +127,17 @@ inline std::vector<int64_t> Model::get_operation_shape(
     TF_Output out_op {TF_GraphOperationByName(graph_.get(), operation.c_str()),
                       0};
     // Operation does not exist
-    if (!out_op.oper)
+    if (!out_op.oper) {
         throw std::runtime_error("No operation named \"" + operation
                                  + "\" exists");
+    }
 
-    if (operation == "NoOp")
+    if (operation == "NoOp") {
         throw std::runtime_error("NoOp doesn't have a shape");
-
-    // DIMENSIONS
+    }
 
     // Get number of dimensions
-    int n_dims
+    auto n_dims
         = TF_GraphGetTensorNumDims(graph_.get(), out_op, context::get_status());
 
     // If is not a scalar
@@ -153,9 +153,10 @@ inline std::vector<int64_t> Model::get_operation_shape(
     return shape;
 }
 
-inline std::tuple<std::string, int> parse_name(const std::string_view& name) {
+inline std::tuple<std::string, int32_t> parse_name(
+    const std::string_view& name) {
     auto pos = name.find(':');
-    if (pos == std::string::npos) {
+    if (pos == std::string_view::npos) {
         return std::make_tuple(std::string {name}, 0);
     }
 
