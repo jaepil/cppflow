@@ -265,10 +265,14 @@ inline Tensor::Tensor(const std::string_view& value)
     TF_TString_Copy(&data, value.data(), value.size());
 
     int64_t dims = -1;
-    tf_tensor_.reset(TF_AllocateTensor(TF_STRING, &dims, 0, sizeof(data)),
-                     TF_DeleteTensor);
-    std::memcpy(TF_TensorData(tf_tensor_.get()), &data,
-                TF_TensorByteSize(tf_tensor_.get()));
+    tf_tensor_.reset(
+        TF_AllocateTensor(TF_STRING, &dims, 0, sizeof(data)), [](auto* handle) {
+            auto* data = static_cast<TF_TString*>(TF_TensorData(handle));
+            TF_DeleteTensor(handle);
+            TF_TString_Dealloc(data);
+        });
+    TF_TString_Move(static_cast<TF_TString*>(TF_TensorData(tf_tensor_.get())),
+                    &data);
     tfe_handle_.reset(
         TFE_NewTensorHandle(tf_tensor_.get(), context::get_status()),
         TFE_DeleteTensorHandle);
