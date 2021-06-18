@@ -260,19 +260,17 @@ inline Tensor::Tensor(const std::string& value)
 
 inline Tensor::Tensor(const std::string_view& value)
     : tf_tensor_(), tfe_handle_() {
-    TF_TString data;
-    TF_TString_Init(&data);
-    TF_TString_Copy(&data, value.data(), value.size());
-
     int64_t dims = -1;
-    tf_tensor_.reset(
-        TF_AllocateTensor(TF_STRING, &dims, 0, sizeof(data)), [](auto* handle) {
-            auto* data = static_cast<TF_TString*>(TF_TensorData(handle));
-            TF_DeleteTensor(handle);
-            TF_TString_Dealloc(data);
-        });
-    TF_TString_Move(static_cast<TF_TString*>(TF_TensorData(tf_tensor_.get())),
-                    &data);
+    auto* tensor = TF_AllocateTensor(TF_STRING, &dims, 0, sizeof(TF_TString));
+    auto* data = static_cast<TF_TString*>(TF_TensorData(tensor));
+    TF_TString_Init(data);
+    TF_TString_Copy(data, value.data(), value.size());
+    tf_tensor_.reset(tensor, [](auto* handle) {
+        auto* data = static_cast<TF_TString*>(TF_TensorData(handle));
+        TF_TString_Dealloc(data);
+        TF_DeleteTensor(handle);
+    });
+
     tfe_handle_.reset(
         TFE_NewTensorHandle(tf_tensor_.get(), context::get_status()),
         TFE_DeleteTensorHandle);
